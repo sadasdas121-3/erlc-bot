@@ -133,6 +133,7 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.login(DISCORD_TOKEN);
+
 import express from 'express';
 
 const app = express();
@@ -145,3 +146,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Web server running on http://localhost:${PORT}`);
 });
+
