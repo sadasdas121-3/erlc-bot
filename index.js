@@ -1,5 +1,15 @@
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { 
+  Client, 
+  GatewayIntentBits, 
+  REST, 
+  Routes, 
+  SlashCommandBuilder, 
+  EmbedBuilder, 
+  PermissionsBitField 
+} from 'discord.js';
 import dotenv from 'dotenv';
+import express from 'express';
+
 dotenv.config();
 
 const {
@@ -15,6 +25,7 @@ if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID || !ANNOUNC
   process.exit(1);
 }
 
+// Set up Discord client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -33,12 +44,27 @@ const commands = [
   new SlashCommandBuilder()
     .setName('announce')
     .setDescription('Send an announcement (admin only)')
-    .addStringOption(option =>
-      option.setName('message')
-        .setDescription('Announcement message')
-        .setRequired(true))
+    .addStringOption(opt =>
+      opt.setName('message')
+         .setDescription('Announcement message')
+         .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName('embed')
+    .setDescription('Create a custom embed (admin only)')
+    .addStringOption(opt =>
+      opt.setName('title')
+         .setDescription('Embed title')
+         .setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName('description')
+         .setDescription('Embed description')
+         .setRequired(true)
+    )
 ].map(cmd => cmd.toJSON());
 
+// Deploy slash commands to your guild
 async function deployCommands() {
   const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
   try {
@@ -53,67 +79,65 @@ async function deployCommands() {
   }
 }
 
+// Bot ready
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
   deployCommands();
 });
 
+// Handle interactions
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
+  const { commandName } = interaction;
+  const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
+  const announceChannel = await client.channels.fetch(ANNOUNCE_CHANNEL_ID);
+
+  // Helper: ensure channel is text-based
+  function isText(channel) {
+    return channel && 'send' in channel;
+  }
+
   try {
-    const command = interaction.commandName;
-    const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
-    const announceChannel = await client.channels.fetch(ANNOUNCE_CHANNEL_ID);
-
-    if (!ssuSsdChannel?.isTextBased()) {
-      return interaction.reply({ content: 'Error: SSU/SSD channel is not a text channel.', ephemeral: true });
-    }
-
-    if (!announceChannel?.isTextBased()) {
-      return interaction.reply({ content: 'Error: Announcement channel is not a text channel.', ephemeral: true });
-    }
-
-    if (command === 'ssu') {
-      const startTimeUnix = Math.floor(Date.now() / 1000);
-      const ssuEmbed = new EmbedBuilder()
+    if (commandName === 'ssu') {
+      const startUnix = Math.floor(Date.now() / 1000);
+      const embed = new EmbedBuilder()
         .setTitle('🚦 ER:LC Server Start-Up')
-        .setDescription('The **Emergency Response: Liberty County** server is now **online** and accepting players! Prepare for duty and follow the rules.')
+        .setDescription('The **Emergency Response: Liberty County** server is now **online**!')
         .setColor('#1E90FF')
         .addFields(
           { name: '🆔 Server Code', value: '`zoWQH`', inline: true },
-          { name: '🕒 Start Time (Local)', value: `<t:${startTimeUnix}:F>`, inline: true },
-          { name: '📜 Rules Reminder', value: 'No random deathmatch (RDM), respect staff and players, use proper roleplay.' }
+          { name: '🕒 Start Time', value: `<t:${startUnix}:F>`, inline: true },
+          { name: '📜 Rules', value: 'No RDM; respect staff & players; proper roleplay.' }
         )
         .setTimestamp()
         .setFooter({ text: 'Stay safe out there!' });
 
       await interaction.reply({ content: `✅ SSU posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
-      await ssuSsdChannel.send({ embeds: [ssuEmbed] });
+      if (isText(ssuSsdChannel)) await ssuSsdChannel.send({ embeds: [embed] });
 
-    } else if (command === 'ssd') {
-      const shutdownTimeUnix = Math.floor(Date.now() / 1000);
-      const ssdEmbed = new EmbedBuilder()
+    } else if (commandName === 'ssd') {
+      const shutUnix = Math.floor(Date.now() / 1000);
+      const embed = new EmbedBuilder()
         .setTitle('🛑 ER:LC Server Shutdown')
-        .setDescription('The **Emergency Response: Liberty County** server is now **offline**. Please wait for the next start-up announcement.')
+        .setDescription('The **ER:LC** server is now **offline**.')
         .setColor('#FF0000')
         .addFields(
-          { name: '🕒 Shutdown Time (Local)', value: `<t:${shutdownTimeUnix}:F>`, inline: true },
-          { name: 'SERVER CLOSED', value: 'Our server has now shutdown. You are not permitted to join the in-game server. You will be notified when we next start up the server via this channel.' }
+          { name: '🕒 Shutdown Time', value: `<t:${shutUnix}:F>`, inline: true },
+          { name: 'Server Closed', value: 'You are not permitted to join until next start-up.' }
         )
         .setTimestamp()
         .setFooter({ text: 'Thanks for your patience!' });
 
       await interaction.reply({ content: `✅ SSD posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
-      await ssuSsdChannel.send({ embeds: [ssdEmbed] });
+      if (isText(ssuSsdChannel)) await ssuSsdChannel.send({ embeds: [embed] });
 
-    } else if (command === 'announce') {
+    } else if (commandName === 'announce') {
       if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        return interaction.reply({ content: '❌ You do not have permission to use this command.', ephemeral: true });
+        return interaction.reply({ content: '❌ You do not have permission.', ephemeral: true });
       }
-
       const message = interaction.options.getString('message');
-      const announceEmbed = new EmbedBuilder()
+      const embed = new EmbedBuilder()
         .setTitle('📢 Announcement')
         .setDescription(message)
         .setColor('Gold')
@@ -121,29 +145,36 @@ client.on('interactionCreate', async interaction => {
         .setTimestamp();
 
       await interaction.reply({ content: `📣 Announcement sent in <#${ANNOUNCE_CHANNEL_ID}>`, ephemeral: true });
-      await announceChannel.send({ embeds: [announceEmbed] });
+      if (isText(announceChannel)) await announceChannel.send({ embeds: [embed] });
+
+    } else if (commandName === 'embed') {
+      if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        return interaction.reply({ content: '❌ You do not have permission.', ephemeral: true });
+      }
+      const title = interaction.options.getString('title');
+      const description = interaction.options.getString('description');
+      const embed = new EmbedBuilder()
+        .setTitle(title)
+        .setDescription(description)
+        .setColor('Blurple')
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
     }
 
   } catch (error) {
     console.error('Command error:', error);
     if (!interaction.replied) {
-      await interaction.reply({ content: 'There was an error while executing this command.', ephemeral: true });
+      await interaction.reply({ content: '❌ There was an error.', ephemeral: true });
     }
   }
 });
 
+// Login the bot
 client.login(DISCORD_TOKEN);
 
-import express from 'express';
-
+// Express keep‑alive server
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('Bot is alive!');
-});
-
-app.listen(PORT, () => {
-  console.log(`Web server running on http://localhost:${PORT}`);
-});
-
+app.get('/', (_req, res) => res.send('Bot is alive!'));
+app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
