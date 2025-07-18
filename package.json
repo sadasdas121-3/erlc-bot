@@ -1,13 +1,16 @@
 {
-  "name": "erlc-bot",
+  "name": "discord-bot",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.11.0",
-    "dotenv": "^16.3.1",
-    "node-fetch": "^2.6.7"
+    "@discordjs/rest": "^2.5.1",
+    "discord-api-types": "^0.38.16",
+    "discord.js": "^14.21.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2"
   }
 }
