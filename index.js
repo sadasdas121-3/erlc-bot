@@ -162,5 +162,23 @@ We look forward to seeing you back soon for another immersive session.`
     }
   }
 });
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}`);
+  deployCommands();
 
+  client.user.setPresence({
+    activities: [{ name: 'Windsor Castle RP', type: 0 }],
+    status: 'online'
+  });
+});
+
+// 👇 This handles incoming slash commands
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+
+  // your command handlers here (ssu, ssd, announce, etc.)
+});
+
+// 👇 This starts the bot after all setup is done
 client.login(DISCORD_TOKEN);
+
