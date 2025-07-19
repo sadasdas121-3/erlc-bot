@@ -8,6 +8,7 @@ import {
   PermissionsBitField
 } from 'discord.js';
 import dotenv from 'dotenv';
+import express from 'express';
 
 dotenv.config();
 
@@ -16,7 +17,8 @@ const {
   CLIENT_ID,
   GUILD_ID,
   SSU_SSD_CHANNEL_ID,
-  RULES_CHANNEL_ID = '1393480748987715706'
+  RULES_CHANNEL_ID = '1378770594731921498',
+  PORT = 10000
 } = process.env;
 
 if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID) {
@@ -36,13 +38,19 @@ const commands = [
   new SlashCommandBuilder().setName('discordrules').setDescription('Post Discord server rules embed'),
   new SlashCommandBuilder()
     .setName('announce')
-    .setDescription('Send an announcement to a specific channel')
-    .addStringOption(option => option.setName('message').setDescription('The announcement message').setRequired(true)),
+    .setDescription('Send an announcement (admin only)')
+    .addStringOption(option =>
+      option.setName('message').setDescription('Announcement message').setRequired(true)
+    ),
   new SlashCommandBuilder()
-    .setName('dm')
-    .setDescription('Send a direct message to a user')
-    .addUserOption(option => option.setName('user').setDescription('The user to DM').setRequired(true))
-    .addStringOption(option => option.setName('message').setDescription('The message content').setRequired(true))
+    .setName('embed')
+    .setDescription('Send a custom embed (admin only)')
+    .addStringOption(option =>
+      option.setName('title').setDescription('Embed title').setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('description').setDescription('Embed description').setRequired(true)
+    )
 ].map(command => command.toJSON());
 
 async function deployCommands() {
@@ -57,128 +65,124 @@ async function deployCommands() {
 }
 
 client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
+  console.log(`✅ Logged in as ${client.user.tag}`);
   deployCommands();
-  client.user.setPresence({
-    activities: [{ name: 'Windsor Castle RP', type: 3 }], // Watching
-    status: 'online'
-  });
 });
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === 'ssu') {
-    const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
-    const startTime = new Date();
+  const { commandName } = interaction;
+  const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
+  const rulesChannel = await client.channels.fetch(RULES_CHANNEL_ID);
 
-    const ssuEmbed = new EmbedBuilder()
+  if (commandName === 'ssu') {
+    const embed = new EmbedBuilder()
       .setTitle('Windsor Castle RP — Server Start Up')
       .setColor('#0047AB')
       .setDescription(
-        `Welcome to Windsor Castle Roleplay!
-
-The server is now online and ready for session.
-
-Please ensure you’re familiar with the rules and ready to engage respectfully and fairly with all members.
-
-**Remember:**
-- Follow the chain of command
-- Keep communications clear and respectful
-- Report any issues to staff promptly
-- Stay immersive and enjoy the experience!`
+        `Welcome to Windsor Castle RP!\n\n` +
+        `The server is now **ONLINE**.\n\n` +
+        `🔹 Please follow all community rules\n` +
+        `🔹 Report any bugs or issues\n` +
+        `🔹 Enjoy immersive and respectful RP!`
       )
       .setThumbnail(imageURL)
       .setFooter({ text: 'Windsor Castle RP | Server Status' })
-      .setTimestamp(startTime);
+      .setTimestamp();
 
     await interaction.reply({ content: `✅ SSU posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
-    await ssuSsdChannel.send({ embeds: [ssuEmbed] });
+    await ssuSsdChannel.send({ embeds: [embed] });
 
-  } else if (interaction.commandName === 'ssd') {
-    const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
-    const shutdownTime = new Date();
-
-    const ssdEmbed = new EmbedBuilder()
+  } else if (commandName === 'ssd') {
+    const embed = new EmbedBuilder()
       .setTitle('Windsor Castle RP — Server Shut Down')
       .setColor('#0047AB')
       .setDescription(
-        `The server is now going offline.
-
-Thank you all for your time and dedication today.
-Please log off safely and remember to follow up on any pending tasks or reports.
-
-We look forward to seeing you back soon for another immersive session.`
+        `The server is now **OFFLINE**.\n\n` +
+        `Thanks for participating today!\n\n` +
+        `🕊️ Make sure to log off properly\n` +
+        `📝 Feel free to leave feedback or suggestions\n` +
+        `👑 See you next session!`
       )
       .setThumbnail(imageURL)
       .setFooter({ text: 'Windsor Castle RP | Server Status' })
-      .setTimestamp(shutdownTime);
+      .setTimestamp();
 
     await interaction.reply({ content: `✅ SSD posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
-    await ssuSsdChannel.send({ embeds: [ssdEmbed] });
+    await ssuSsdChannel.send({ embeds: [embed] });
 
-  } else if (interaction.commandName === 'discordrules') {
-    const rulesChannel = await client.channels.fetch(RULES_CHANNEL_ID);
-
+  } else if (commandName === 'discordrules') {
     const embed = new EmbedBuilder()
-      .setTitle('Server Rules')
-      .setDescription('Please read and follow all the rules carefully.')
+      .setTitle('📘 Server Rules')
       .setColor('#0099ff')
       .setThumbnail(imageURL)
       .addFields(
-        { name: 'Rule 1 - Respect all Members', value: 'Treat everyone with respect. Bullying, discrimination or harassment will not be tolerated.' },
-        { name: 'Rule 2 - Follow Discord & Roblox ToS', value: 'You are expected to follow the official Discord ToS and Roblox ToS at all times.' },
-        { name: 'Rule 3 - Keep it Civil', value: 'No excessive arguing, drama, or politics. Take personal issues to DMs.' },
-        { name: 'Rule 4 - Advertising', value: "Don't advertise irrelevant media, servers or ROBLOX groups/servers. This includes direct messaging users from the server." },
-        { name: 'Rule 5 - Spamming and Raiding', value: 'Spamming large chunks of text, media, and expressions in our channels is prohibited.' },
-        { name: 'Rule 6 - Threats and Intimidation', value: 'Threatening, intimidating, or leaking personal information about a user is prohibited regardless of how you know the user.' },
-        { name: 'Rule 7 - External Links', value: 'Do not post any external links which may lead to content that breaks the rules, or which is malicious.' },
-        { name: 'Rule 8 - Over Usage of Pings', value: 'Do not ping others unless you absolutely need to, overusing the ping access will result in punishments.' },
-        { name: 'Rule 9 - Not Safe For Work Material', value: 'No NSFW or NSFL content, this should not be used whilst communicating throughout our Discord server.' },
-        { name: 'Rule 10 - English Only', value: 'Do not speak in any different languages in public channels, this is an English-only server.' },
-        { name: 'Rule 11 - Impersonation', value: 'Do not impersonate anyone, including staff, officers, or other members. Impersonation is a serious offence.' },
-        { name: 'Rule 12 - Follow the Chain of Command', value: 'Do not skip ranks when asking for help or reporting an issue, start with your immediate superior.' },
-        { name: 'Rule 13 - Channel Misuse', value: 'Channel misuse is prohibited, e.g. sending commands in main chats or side chatting in bot commands channel.' }
+        { name: '1. Respect Everyone', value: 'No bullying, discrimination, or harassment.' },
+        { name: '2. Follow Discord & Roblox ToS', value: 'No violations tolerated.' },
+        { name: '3. No Drama or Arguments', value: 'Take personal issues to DMs.' },
+        { name: '4. No Advertising', value: 'Including DMs and off-topic links.' },
+        { name: '5. No Spam or Raiding', value: 'Includes large text, emojis, media.' },
+        { name: '6. No Threats', value: 'No intimidation or doxxing.' },
+        { name: '7. No Malicious Links', value: 'Only safe and relevant links allowed.' },
+        { name: '8. Don’t Ping Excessively', value: 'Ping staff/members only when needed.' },
+        { name: '9. No NSFW Content', value: 'Keep it clean for everyone.' },
+        { name: '10. English Only', value: 'Use English in public channels.' },
+        { name: '11. No Impersonation', value: 'Especially staff or other users.' },
+        { name: '12. Respect Chain of Command', value: 'Report to proper roles/staff.' },
+        { name: '13. Channel Misuse', value: 'Stick to each channel’s purpose.' },
       )
-      .setFooter({ text: 'Please adhere to all rules to maintain a friendly community.' })
+      .setFooter({ text: 'Violating rules may result in punishment. Stay respectful!' })
       .setTimestamp();
 
     await interaction.reply({ content: `📘 Rules posted in <#${RULES_CHANNEL_ID}>`, ephemeral: true });
     await rulesChannel.send({ embeds: [embed] });
 
-  } else if (interaction.commandName === 'announce') {
-    const message = interaction.options.getString('message');
-    const channel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
-    await channel.send(`📢 ${message}`);
-    await interaction.reply({ content: '✅ Announcement sent.', ephemeral: true });
-  } else if (interaction.commandName === 'dm') {
-    const user = interaction.options.getUser('user');
-    const message = interaction.options.getString('message');
-    try {
-      await user.send(message);
-      await interaction.reply({ content: `📨 Message sent to ${user.tag}`, ephemeral: true });
-    } catch (err) {
-      await interaction.reply({ content: '❌ Failed to send DM.', ephemeral: true });
+  } else if (commandName === 'announce') {
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return interaction.reply({ content: '❌ You lack permission to use this command.', ephemeral: true });
     }
+
+    const msg = interaction.options.getString('message');
+    const embed = new EmbedBuilder()
+      .setTitle('📢 Announcement')
+      .setColor('Gold')
+      .setDescription(msg)
+      .setThumbnail(imageURL)
+      .setFooter({ text: 'Windsor Castle RP' })
+      .setTimestamp();
+
+    await interaction.reply({ content: `📣 Announcement sent in this channel.`, ephemeral: true });
+    await interaction.channel.send({ embeds: [embed] });
+
+  } else if (commandName === 'embed') {
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return interaction.reply({ content: '❌ You lack permission to use this command.', ephemeral: true });
+    }
+
+    const title = interaction.options.getString('title');
+    const desc = interaction.options.getString('description');
+
+    const embed = new EmbedBuilder()
+      .setTitle(title)
+      .setDescription(desc)
+      .setColor('#5865F2')
+      .setThumbnail(imageURL)
+      .setFooter({ text: 'Custom Embed' })
+      .setTimestamp();
+
+    await interaction.reply({ content: `✅ Embed sent.`, ephemeral: true });
+    await interaction.channel.send({ embeds: [embed] });
   }
 });
-client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
-  deployCommands();
 
-  client.user.setPresence({
-    activities: [{ name: 'Windsor Castle RP', type: 0 }],
-    status: 'online'
-  });
-});
-
-// 👇 This handles incoming slash commands
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  // your command handlers here (ssu, ssd, announce, etc.)
-});
-
-// 👇 This starts the bot after all setup is done
 client.login(DISCORD_TOKEN);
+
+// Express keep-alive for Render
+const app = express();
+app.get('/', (_, res) => res.sendStatus(200));
+app.listen(PORT, () => {
+  console.log(`🌐 HTTP server running on port ${PORT}`);
+});
+
 
