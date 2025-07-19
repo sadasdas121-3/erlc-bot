@@ -16,7 +16,7 @@ const {
   CLIENT_ID,
   GUILD_ID,
   SSU_SSD_CHANNEL_ID,
-  RULES_CHANNEL_ID = '1393480748987715706',
+  RULES_CHANNEL_ID = '1393480748987715706'
 } = process.env;
 
 if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID) {
@@ -34,6 +34,15 @@ const commands = [
   new SlashCommandBuilder().setName('ssu').setDescription('Post Server Start Up embed'),
   new SlashCommandBuilder().setName('ssd').setDescription('Post Server Shut Down embed'),
   new SlashCommandBuilder().setName('discordrules').setDescription('Post Discord server rules embed'),
+  new SlashCommandBuilder()
+    .setName('announce')
+    .setDescription('Send an announcement to a specific channel')
+    .addStringOption(option => option.setName('message').setDescription('The announcement message').setRequired(true)),
+  new SlashCommandBuilder()
+    .setName('dm')
+    .setDescription('Send a direct message to a user')
+    .addUserOption(option => option.setName('user').setDescription('The user to DM').setRequired(true))
+    .addStringOption(option => option.setName('message').setDescription('The message content').setRequired(true))
 ].map(command => command.toJSON());
 
 async function deployCommands() {
@@ -50,6 +59,10 @@ async function deployCommands() {
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
   deployCommands();
+  client.user.setPresence({
+    activities: [{ name: 'Windsor Castle RP', type: 3 }], // Watching
+    status: 'online'
+  });
 });
 
 client.on('interactionCreate', async interaction => {
@@ -57,44 +70,49 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.commandName === 'ssu') {
     const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
-    const startTime = Math.floor(Date.now() / 1000);
+    const startTime = new Date();
 
     const ssuEmbed = new EmbedBuilder()
       .setTitle('Windsor Castle RP — Server Start Up')
-      .setColor('#0047AB') // Royal Blue
+      .setColor('#0047AB')
       .setDescription(
-        `Welcome to Windsor Castle Roleplay!\n\n` +
-        `The server is now online and ready for duty.\n` +
-        `Please ensure you’re familiar with the rules and ready to engage respectfully and fairly with all members.\n\n` +
-        `Remember:\n` +
-        `- Follow the chain of command.\n` +
-        `- Keep communications clear and respectful.\n` +
-        `- Report any issues to staff promptly.\n` +
-        `- Stay immersive and enjoy the experience!`
+        `Welcome to Windsor Castle Roleplay!
+
+The server is now online and ready for session.
+
+Please ensure you’re familiar with the rules and ready to engage respectfully and fairly with all members.
+
+**Remember:**
+- Follow the chain of command
+- Keep communications clear and respectful
+- Report any issues to staff promptly
+- Stay immersive and enjoy the experience!`
       )
       .setThumbnail(imageURL)
       .setFooter({ text: 'Windsor Castle RP | Server Status' })
-      .setTimestamp(startTime * 1000);
+      .setTimestamp(startTime);
 
     await interaction.reply({ content: `✅ SSU posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
     await ssuSsdChannel.send({ embeds: [ssuEmbed] });
 
   } else if (interaction.commandName === 'ssd') {
     const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
-    const shutdownTime = Math.floor(Date.now() / 1000);
+    const shutdownTime = new Date();
 
     const ssdEmbed = new EmbedBuilder()
       .setTitle('Windsor Castle RP — Server Shut Down')
       .setColor('#0047AB')
       .setDescription(
-        `The server is now going offline.\n\n` +
-        `Thank you all for your time and dedication today.\n` +
-        `Please log off safely and remember to follow up on any pending tasks or reports.\n\n` +
-        `We look forward to seeing you back soon for another immersive session.`
+        `The server is now going offline.
+
+Thank you all for your time and dedication today.
+Please log off safely and remember to follow up on any pending tasks or reports.
+
+We look forward to seeing you back soon for another immersive session.`
       )
       .setThumbnail(imageURL)
       .setFooter({ text: 'Windsor Castle RP | Server Status' })
-      .setTimestamp(shutdownTime * 1000);
+      .setTimestamp(shutdownTime);
 
     await interaction.reply({ content: `✅ SSD posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
     await ssuSsdChannel.send({ embeds: [ssdEmbed] });
@@ -120,13 +138,28 @@ client.on('interactionCreate', async interaction => {
         { name: 'Rule 10 - English Only', value: 'Do not speak in any different languages in public channels, this is an English-only server.' },
         { name: 'Rule 11 - Impersonation', value: 'Do not impersonate anyone, including staff, officers, or other members. Impersonation is a serious offence.' },
         { name: 'Rule 12 - Follow the Chain of Command', value: 'Do not skip ranks when asking for help or reporting an issue, start with your immediate superior.' },
-        { name: 'Rule 13 - Channel Misuse', value: 'Channel misuse is prohibited, e.g. sending commands in main chats or side chatting in bot commands channel.' },
+        { name: 'Rule 13 - Channel Misuse', value: 'Channel misuse is prohibited, e.g. sending commands in main chats or side chatting in bot commands channel.' }
       )
       .setFooter({ text: 'Please adhere to all rules to maintain a friendly community.' })
       .setTimestamp();
 
     await interaction.reply({ content: `📘 Rules posted in <#${RULES_CHANNEL_ID}>`, ephemeral: true });
     await rulesChannel.send({ embeds: [embed] });
+
+  } else if (interaction.commandName === 'announce') {
+    const message = interaction.options.getString('message');
+    const channel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
+    await channel.send(`📢 ${message}`);
+    await interaction.reply({ content: '✅ Announcement sent.', ephemeral: true });
+  } else if (interaction.commandName === 'dm') {
+    const user = interaction.options.getUser('user');
+    const message = interaction.options.getString('message');
+    try {
+      await user.send(message);
+      await interaction.reply({ content: `📨 Message sent to ${user.tag}`, ephemeral: true });
+    } catch (err) {
+      await interaction.reply({ content: '❌ Failed to send DM.', ephemeral: true });
+    }
   }
 });
 
