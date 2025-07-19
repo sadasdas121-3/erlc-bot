@@ -8,6 +8,8 @@ import {
   PermissionsBitField
 } from 'discord.js';
 import dotenv from 'dotenv';
+import express from 'express';
+
 dotenv.config();
 
 const {
@@ -20,7 +22,7 @@ const {
 
 const RULES_CHANNEL_ID = '1393480748987715706';
 
-if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID) {
+if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID || !ANNOUNCE_CHANNEL_ID) {
   console.error('Missing required environment variables.');
   process.exit(1);
 }
@@ -28,6 +30,8 @@ if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID) {
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
+
+const imageURL = 'https://cdn.discordapp.com/attachments/1245048324717805568/1378799332014297158/inf-gren_gds_600x600-hmtk.png?ex=687be0f1&is=687a8f71&hm=6f03ed61d6de4034f35a4ae458af4a1e3be1320b300f0eb698d553abd13ee52d';
 
 const commands = [
   new SlashCommandBuilder().setName('ssu').setDescription('Post SSU embed'),
@@ -39,7 +43,16 @@ const commands = [
       option.setName('message').setDescription('Announcement message').setRequired(true)
     ),
   new SlashCommandBuilder().setName('discordrules').setDescription('Post Discord rules embed'),
-  new SlashCommandBuilder().setName('ingamerules').setDescription('Post in-game rules embed')
+  new SlashCommandBuilder().setName('ingamerules').setDescription('Post in-game rules embed'),
+  new SlashCommandBuilder()  // Added /embed command
+    .setName('embed')
+    .setDescription('Create a custom embed (admin only)')
+    .addStringOption(option =>
+      option.setName('title').setDescription('Embed title').setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('description').setDescription('Embed description').setRequired(true)
+    )
 ].map(command => command.toJSON());
 
 async function deployCommands() {
@@ -69,19 +82,21 @@ client.on('interactionCreate', async interaction => {
   if (commandName === 'ssu') {
     const startTime = Math.floor(Date.now() / 1000);
     const ssuEmbed = new EmbedBuilder()
-      .setTitle('🚦 ER:LC Server Start-Up')
-      .setColor('#1E90FF')
-      .setDescription('Server is now online and accepting players!')
-      .addFields(
-        { name: '🆔 Server Code', value: '`zoWQH`', inline: true },
-        { name: '🕒 Start Time', value: `<t:${startTime}:F>`, inline: true },
-        {
-          name: '📜 Rules Reminder',
-          value: 'No RDM, no fail RP, respect staff, and follow the Roblox TOS.'
-        }
+      .setTitle('Windsor Castle RP — Server Start Up')
+      .setColor('#0047AB') // Royal Blue
+      .setDescription(
+        `Welcome to Windsor Castle Roleplay!\n\n` +
+        `The server is now online and ready for duty.\n` +
+        `Please ensure you’re familiar with the rules and ready to engage respectfully and fairly with all members.\n\n` +
+        `Remember:\n` +
+        `- Follow the chain of command.\n` +
+        `- Keep communications clear and respectful.\n` +
+        `- Report any issues to staff promptly.\n` +
+        `- Stay immersive and enjoy the experience!`
       )
-      .setFooter({ text: 'Stay safe out there!' })
-      .setTimestamp();
+      .setThumbnail(imageURL)
+      .setFooter({ text: 'Windsor Castle RP | Server Status' })
+      .setTimestamp(startTime * 1000);
 
     await interaction.reply({ content: `✅ SSU posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
     await ssuSsdChannel.send({ embeds: [ssuEmbed] });
@@ -89,15 +104,17 @@ client.on('interactionCreate', async interaction => {
   } else if (commandName === 'ssd') {
     const shutdownTime = Math.floor(Date.now() / 1000);
     const ssdEmbed = new EmbedBuilder()
-      .setTitle('🛑 ER:LC Server Shutdown')
-      .setColor('#FF0000')
-      .setDescription('Server is now offline.')
-      .addFields(
-        { name: '🕒 Shutdown Time', value: `<t:${shutdownTime}:F>` },
-        { name: '🔒', value: 'Please wait for the next SSU to join again.' }
+      .setTitle('Windsor Castle RP — Server Shut Down')
+      .setColor('#0047AB')
+      .setDescription(
+        `The server is now going offline.\n\n` +
+        `Thank you all for your time and dedication today.\n` +
+        `Please log off safely and remember to follow up on any pending tasks or reports.\n\n` +
+        `We look forward to seeing you back soon for another immersive session.`
       )
-      .setFooter({ text: 'Thanks for playing!' })
-      .setTimestamp();
+      .setThumbnail(imageURL)
+      .setFooter({ text: 'Windsor Castle RP | Server Status' })
+      .setTimestamp(shutdownTime * 1000);
 
     await interaction.reply({ content: `✅ SSD posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
     await ssuSsdChannel.send({ embeds: [ssdEmbed] });
@@ -112,6 +129,7 @@ client.on('interactionCreate', async interaction => {
       .setTitle('📢 Announcement')
       .setColor('Gold')
       .setDescription(msg)
+      .setThumbnail(imageURL)
       .setFooter({ text: 'Server Code: zoWQH' })
       .setTimestamp();
 
@@ -120,53 +138,27 @@ client.on('interactionCreate', async interaction => {
 
   } else if (commandName === 'discordrules') {
     const embed = new EmbedBuilder()
-      .setTitle('📘 NYCRP Discord Rules')
-      .setColor('Blurple')
-      .setFields(
-        {
-          name: '📛 Harassment',
-          value: [
-            '• No bullying, harassment, or server raiding.',
-            '• No threats, direct or indirect.',
-            '• No doxxing or sharing private info.'
-          ].join('\n')
-        },
-        {
-          name: '🛑 Hateful Conduct',
-          value: [
-            '• No hate speech or slurs.',
-            '• No extremist symbols or denial of atrocities.'
-          ].join('\n')
-        },
-        {
-          name: '🚨 Dangerous Content',
-          value: [
-            '• No promoting violence or terrorism.',
-            '• No graphic violence, gore, or animal harm.'
-          ].join('\n')
-        },
-        {
-          name: '🔞 Sexual Content & Safety',
-          value: [
-            '• No CSAM or grooming.',
-            '• No NSFW content unless age-restricted.',
-            '• No sexualizing real or animated minors.'
-          ].join('\n')
-        },
-        {
-          name: '🧠 Self-Harm',
-          value: '• No glorifying or promoting self-harm or suicide.'
-        },
-        {
-          name: '⚙️ Platform Rules',
-          value: [
-            '• No spamming, self-bots, or fake engagement.',
-            '• No impersonation or alt evasion.',
-            '• No phishing, hacking, or malware.'
-          ].join('\n')
-        }
+      .setTitle('Server Rules')
+      .setDescription('Please read and follow all the rules carefully.')
+      .setColor('#0099ff')
+      .setThumbnail(imageURL)
+      .addFields(
+        { name: 'Rule 1 - Respect all Members', value: 'Treat everyone with respect. Bullying, discrimination or harassment will not be tolerated.' },
+        { name: 'Rule 2 - Follow Discord & Roblox ToS', value: 'You are expected to follow the official Discord ToS and Roblox ToS at all times.' },
+        { name: 'Rule 3 - Keep it Civil', value: 'No excessive arguing, drama, or politics. Take personal issues to DMs.' },
+        { name: 'Rule 4 - Advertising', value: "Don't advertise irrelevant media, servers or ROBLOX groups/servers. This includes direct messaging users from the server." },
+        { name: 'Rule 5 - Spamming and Raiding', value: 'Spamming large chunks of text, media, and expressions in our channels is prohibited.' },
+        { name: 'Rule 6 - Threats and Intimidation', value: 'Threatening, intimidating, or leaking personal information about a user is prohibited regardless of how you know the user.' },
+        { name: 'Rule 7 - External Links', value: 'Do not post any external links which may lead to content that breaks the rules, or which is malicious.' },
+        { name: 'Rule 8 - Over Usage of Pings', value: 'Do not ping others unless you absolutely need to, overusing the ping access will result in punishments.' },
+        { name: 'Rule 9 - Not Safe For Work Material', value: 'No NSFW or NSFL content, this should not be used whilst communicating throughout our Discord server.' },
+        { name: 'Rule 10 - English Only', value: 'Do not speak in any different languages in public channels, this is an English-only server.' },
+        { name: 'Rule 11 - Impersonation', value: 'Do not impersonate anyone, including staff, officers, or other members. Impersonation is a serious offence.' },
+        { name: 'Rule 12 - Follow the Chain of Command', value: 'Do not skip ranks when asking for help or reporting an issue, start with your immediate superior.' },
+        { name: 'Rule 13 - Channel Misuse', value: 'Channel misuse is prohibited, e.g. sending commands in main chats or side chatting in bot commands channel.' },
       )
-      .setFooter({ text: 'These rules apply across all NYCRP servers.' });
+      .setFooter({ text: 'Please adhere to all rules to maintain a friendly community.' })
+      .setTimestamp();
 
     await interaction.reply({ content: `📘 Rules posted in <#${RULES_CHANNEL_ID}>`, ephemeral: true });
     await rulesChannel.send({ embeds: [embed] });
@@ -175,6 +167,7 @@ client.on('interactionCreate', async interaction => {
     const embed = new EmbedBuilder()
       .setTitle('📜 NYCRP In-Game Rules')
       .setColor('Green')
+      .setThumbnail(imageURL)
       .addFields(
         {
           name: 'General Gameplay',
@@ -186,41 +179,5 @@ client.on('interactionCreate', async interaction => {
             '5. No Evading without cause',
             '6. No unrealistic pursuits or crashes',
             '7. No ERP (Explicit Roleplay)',
-            '8. Spawns (Civilian, Police, Hospital) are safezones',
-            '9. Family RP must be realistic',
-            '10. Do not impersonate staff or emergency services',
-            '11. Use appropriate character names',
-            '12. Respect Roblox ToS at all times',
-            '13. Do not abuse glitches or exploits'
-          ].join('\n')
-        },
-        {
-          name: '🚫 Banned RP Types',
-          value: [
-            '• Bomb RP',
-            '• Terrorist RP',
-            '• School shooter RP',
-            '• Kidnap RP (unless both parties consent)',
-            '• ERP or anything sexual'
-          ].join('\n')
-        },
-        {
-          name: '🎖️ Server Booster Perks',
-          value: 'Boosters may use banned cars/guns for fun or VIP RP **unless abused**.'
-        }
-      )
-      .setFooter({ text: 'Play fair. Roleplay right. - NYCRP' });
+            '8. Spawns (Civil
 
-    await interaction.reply({ content: `📜 In-game rules posted in <#${RULES_CHANNEL_ID}>`, ephemeral: true });
-    await rulesChannel.send({ embeds: [embed] });
-  }
-});
-
-client.login(DISCORD_TOKEN);
-
-// Express Web Server for Uptime Monitoring
-import express from 'express';
-const app = express();
-const PORT = process.env.PORT || 3000;
-app.get('/', (_, res) => res.send('Bot is running!'));
-app.listen(PORT, () => console.log(`Web server live on port ${PORT}`));
