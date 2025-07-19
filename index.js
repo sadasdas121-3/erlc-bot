@@ -8,7 +8,6 @@ import {
   PermissionsBitField
 } from 'discord.js';
 import dotenv from 'dotenv';
-import express from 'express';
 
 dotenv.config();
 
@@ -17,12 +16,10 @@ const {
   CLIENT_ID,
   GUILD_ID,
   SSU_SSD_CHANNEL_ID,
-  ANNOUNCE_CHANNEL_ID
+  RULES_CHANNEL_ID = '1393480748987715706',
 } = process.env;
 
-const RULES_CHANNEL_ID = '1393480748987715706';
-
-if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID || !ANNOUNCE_CHANNEL_ID) {
+if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID) {
   console.error('Missing required environment variables.');
   process.exit(1);
 }
@@ -34,25 +31,9 @@ const client = new Client({
 const imageURL = 'https://cdn.discordapp.com/attachments/1245048324717805568/1378799332014297158/inf-gren_gds_600x600-hmtk.png?ex=687be0f1&is=687a8f71&hm=6f03ed61d6de4034f35a4ae458af4a1e3be1320b300f0eb698d553abd13ee52d';
 
 const commands = [
-  new SlashCommandBuilder().setName('ssu').setDescription('Post SSU embed'),
-  new SlashCommandBuilder().setName('ssd').setDescription('Post SSD embed'),
-  new SlashCommandBuilder()
-    .setName('announce')
-    .setDescription('Send an announcement (admin only)')
-    .addStringOption(option =>
-      option.setName('message').setDescription('Announcement message').setRequired(true)
-    ),
-  new SlashCommandBuilder().setName('discordrules').setDescription('Post Discord rules embed'),
-  new SlashCommandBuilder().setName('ingamerules').setDescription('Post in-game rules embed'),
-  new SlashCommandBuilder()  // Added /embed command
-    .setName('embed')
-    .setDescription('Create a custom embed (admin only)')
-    .addStringOption(option =>
-      option.setName('title').setDescription('Embed title').setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName('description').setDescription('Embed description').setRequired(true)
-    )
+  new SlashCommandBuilder().setName('ssu').setDescription('Post Server Start Up embed'),
+  new SlashCommandBuilder().setName('ssd').setDescription('Post Server Shut Down embed'),
+  new SlashCommandBuilder().setName('discordrules').setDescription('Post Discord server rules embed'),
 ].map(command => command.toJSON());
 
 async function deployCommands() {
@@ -73,14 +54,11 @@ client.once('ready', () => {
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
-  const { commandName } = interaction;
 
-  const rulesChannel = await client.channels.fetch(RULES_CHANNEL_ID);
-  const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
-  const announceChannel = await client.channels.fetch(ANNOUNCE_CHANNEL_ID);
-
-  if (commandName === 'ssu') {
+  if (interaction.commandName === 'ssu') {
+    const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
     const startTime = Math.floor(Date.now() / 1000);
+
     const ssuEmbed = new EmbedBuilder()
       .setTitle('Windsor Castle RP — Server Start Up')
       .setColor('#0047AB') // Royal Blue
@@ -101,8 +79,10 @@ client.on('interactionCreate', async interaction => {
     await interaction.reply({ content: `✅ SSU posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
     await ssuSsdChannel.send({ embeds: [ssuEmbed] });
 
-  } else if (commandName === 'ssd') {
+  } else if (interaction.commandName === 'ssd') {
+    const ssuSsdChannel = await client.channels.fetch(SSU_SSD_CHANNEL_ID);
     const shutdownTime = Math.floor(Date.now() / 1000);
+
     const ssdEmbed = new EmbedBuilder()
       .setTitle('Windsor Castle RP — Server Shut Down')
       .setColor('#0047AB')
@@ -119,24 +99,9 @@ client.on('interactionCreate', async interaction => {
     await interaction.reply({ content: `✅ SSD posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
     await ssuSsdChannel.send({ embeds: [ssdEmbed] });
 
-  } else if (commandName === 'announce') {
-    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-      return interaction.reply({ content: '❌ You lack permission.', ephemeral: true });
-    }
+  } else if (interaction.commandName === 'discordrules') {
+    const rulesChannel = await client.channels.fetch(RULES_CHANNEL_ID);
 
-    const msg = interaction.options.getString('message');
-    const embed = new EmbedBuilder()
-      .setTitle('📢 Announcement')
-      .setColor('Gold')
-      .setDescription(msg)
-      .setThumbnail(imageURL)
-      .setFooter({ text: 'Server Code: zoWQH' })
-      .setTimestamp();
-
-    await interaction.reply({ content: `📣 Sent in <#${ANNOUNCE_CHANNEL_ID}>`, ephemeral: true });
-    await announceChannel.send({ embeds: [embed] });
-
-  } else if (commandName === 'discordrules') {
     const embed = new EmbedBuilder()
       .setTitle('Server Rules')
       .setDescription('Please read and follow all the rules carefully.')
@@ -162,22 +127,7 @@ client.on('interactionCreate', async interaction => {
 
     await interaction.reply({ content: `📘 Rules posted in <#${RULES_CHANNEL_ID}>`, ephemeral: true });
     await rulesChannel.send({ embeds: [embed] });
+  }
+});
 
-  } else if (commandName === 'ingamerules') {
-    const embed = new EmbedBuilder()
-      .setTitle('📜 NYCRP In-Game Rules')
-      .setColor('Green')
-      .setThumbnail(imageURL)
-      .addFields(
-        {
-          name: 'General Gameplay',
-          value: [
-            '1. No RDM (Random Deathmatch)',
-            '2. No VDM (Vehicle Deathmatch)',
-            '3. No Fail RP or Unrealistic RP',
-            '4. No Cop Baiting',
-            '5. No Evading without cause',
-            '6. No unrealistic pursuits or crashes',
-            '7. No ERP (Explicit Roleplay)',
-            '8. Spawns (Civil
-
+client.login(DISCORD_TOKEN);
