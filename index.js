@@ -19,6 +19,8 @@ const {
   SSU_SSD_CHANNEL_ID,
   RULES_CHANNEL_ID = '1378770594731921498',
   PORT = 10000,
+  ROBLX_COOKIE,
+  ROBLX_GROUP_ID,
 } = process.env;
 
 if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID) {
@@ -67,6 +69,10 @@ const commands = [
     .addStringOption((option) =>
       option.setName('description').setDescription('Embed description').setRequired(true)
     ),
+  // Added makeroles command here:
+  new SlashCommandBuilder()
+    .setName('makeroles')
+    .setDescription('Create Discord roles based on Roblox group ranks'),
 ].map((cmd) => cmd.toJSON());
 
 async function deployCommands() {
@@ -205,14 +211,66 @@ client.on('interactionCreate', async (interaction) => {
 
     await interaction.reply({ content: `✅ Embed sent.`, ephemeral: true });
     await interaction.channel.send({ embeds: [embed] });
+
+  // --- Added makeroles handler ---
+  } else if (commandName === 'makeroles') {
+    if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return interaction.reply({ content: '❌ You lack permission to use this command.', ephemeral: true });
+    }
+
+    await interaction.reply({ content: '⏳ Fetching ranks and creating roles...' });
+
+    try {
+      // Dynamically import noblox.js (make sure noblox.js is installed)
+      const noblox = await import('noblox.js');
+
+      if (!ROBLX_COOKIE) {
+        return interaction.editReply('❌ ROBLX_COOKIE environment variable is not set.');
+      }
+      if (!ROBLX_GROUP_ID) {
+        return interaction.editReply('❌ ROBLX_GROUP_ID environment variable is not set.');
+      }
+
+      await noblox.setCookie(ROBLX_COOKIE);
+
+      const groupId = parseInt(ROBLX_GROUP_ID);
+      if (isNaN(groupId)) {
+        return interaction.editReply('❌ ROBLX_GROUP_ID is not a valid number.');
+      }
+
+      const ranks = await noblox.getRoles(groupId);
+
+      let createdRoles = 0;
+      for (const rank of ranks) {
+        // Check if role exists by name
+        let role = interaction.guild.roles.cache.find((r) => r.name === rank.name);
+        if (!role) {
+          role = await interaction.guild.roles.create({
+            name: rank.name,
+            color: 'Default',
+            reason: 'Created by /makeroles to sync Roblox group ranks',
+          });
+          createdRoles++;
+        }
+      }
+
+      await interaction.editReply(
+        `✅ Done! Created ${createdRoles} new role${createdRoles !== 1 ? 's' : ''} or roles already existed.`
+      );
+    } catch (error) {
+      console.error('Error in /makeroles:', error);
+      await interaction.editReply(`❌ Failed to create roles: ${error.message}`);
+    }
   }
 });
 
 client.login(DISCORD_TOKEN);
 
-// Express keep-alive for Render
+// Express server for uptime
 const app = express();
-app.get('/', (_, res) => res.sendStatus(200));
+app.get('/', (req, res) => {
+  res.send('Bot is running.');
+});
 app.listen(PORT, () => {
-  console.log(`🌐 HTTP server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
