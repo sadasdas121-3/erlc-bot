@@ -35,7 +35,7 @@ const client = new Client({
 const imageURL =
   'https://cdn.discordapp.com/attachments/1245048324717805568/1378799332014297158/inf-gren_gds_600x600-hmtk.png?ex=687be0f1&is=687a8f71&hm=6f03ed61d6de4034f35a4ae458af4a1e3be1320b300f0eb698d553abd13ee52d';
 
-// Roles allowed to use /ssu, /ssd, /rules
+// Roles allowed to use /ssu, /ssd, /discordrules
 const allowedRoles = new Set([
   '1379804487140642967',
   '1379804624726392832',
@@ -61,15 +61,15 @@ const commands = [
       option.setName('message').setDescription('Announcement message').setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName('dm')
+    .setDescription('Send a direct message to a user (admin only)')
+    .addUserOption((option) => option.setName('user').setDescription('User to DM').setRequired(true))
+    .addStringOption((option) => option.setName('message').setDescription('Message content').setRequired(true)),
+  new SlashCommandBuilder()
     .setName('embed')
     .setDescription('Send a custom embed (admin only)')
-    .addStringOption((option) =>
-      option.setName('title').setDescription('Embed title').setRequired(true)
-    )
-    .addStringOption((option) =>
-      option.setName('description').setDescription('Embed description').setRequired(true)
-    ),
-  // Added makeroles command here:
+    .addStringOption((option) => option.setName('title').setDescription('Embed title').setRequired(true))
+    .addStringOption((option) => option.setName('description').setDescription('Embed description').setRequired(true)),
   new SlashCommandBuilder()
     .setName('makeroles')
     .setDescription('Create Discord roles based on Roblox group ranks'),
@@ -212,7 +212,6 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ content: `✅ Embed sent.`, ephemeral: true });
     await interaction.channel.send({ embeds: [embed] });
 
-  // --- Added makeroles handler ---
   } else if (commandName === 'makeroles') {
     if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
       return interaction.reply({ content: '❌ You lack permission to use this command.', ephemeral: true });
@@ -245,32 +244,45 @@ client.on('interactionCreate', async (interaction) => {
         // Check if role exists by name
         let role = interaction.guild.roles.cache.find((r) => r.name === rank.name);
         if (!role) {
+          // Create role with color blue
           role = await interaction.guild.roles.create({
             name: rank.name,
-            color: 'Default',
-            reason: 'Created by /makeroles to sync Roblox group ranks',
+            color: 'BLUE',
+            reason: 'Role created from Roblox group ranks',
           });
           createdRoles++;
         }
       }
 
-      await interaction.editReply(
-        `✅ Done! Created ${createdRoles} new role${createdRoles !== 1 ? 's' : ''} or roles already existed.`
-      );
+      await interaction.editReply(`✅ Created ${createdRoles} new roles from Roblox group ranks.`);
+
     } catch (error) {
-      console.error('Error in /makeroles:', error);
+      console.error('Error creating roles:', error);
       await interaction.editReply(`❌ Failed to create roles: ${error.message}`);
+    }
+
+  } else if (commandName === 'dm') {
+    if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return interaction.reply({ content: '❌ You lack permission to use this command.', ephemeral: true });
+    }
+
+    const user = interaction.options.getUser('user');
+    const message = interaction.options.getString('message');
+
+    try {
+      await user.send(message);
+      await interaction.reply({ content: `✅ DM sent to ${user.tag}`, ephemeral: true });
+    } catch (error) {
+      await interaction.reply({ content: `❌ Failed to send DM to ${user.tag}`, ephemeral: true });
     }
   }
 });
 
 client.login(DISCORD_TOKEN);
 
-// Express server for uptime
+// Optional: Simple Express server to keep the bot alive on some hosts
 const app = express();
 app.get('/', (req, res) => {
-  res.send('Bot is running.');
+  res.send('Bot is running');
 });
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
