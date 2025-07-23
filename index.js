@@ -19,8 +19,6 @@ const {
   SSU_SSD_CHANNEL_ID,
   RULES_CHANNEL_ID = '1378770594731921498',
   PORT = 10000,
-  ROBLX_COOKIE,
-  ROBLX_GROUP_ID,
 } = process.env;
 
 if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID || !SSU_SSD_CHANNEL_ID) {
@@ -35,7 +33,7 @@ const client = new Client({
 const imageURL =
   'https://cdn.discordapp.com/attachments/1245048324717805568/1378799332014297158/inf-gren_gds_600x600-hmtk.png?ex=687be0f1&is=687a8f71&hm=6f03ed61d6de4034f35a4ae458af4a1e3be1320b300f0eb698d553abd13ee52d';
 
-// Roles allowed to use /ssu, /ssd, /discordrules
+// Roles allowed to use /ssu, /ssd, /rules
 const allowedRoles = new Set([
   '1379804487140642967',
   '1379804624726392832',
@@ -61,18 +59,14 @@ const commands = [
       option.setName('message').setDescription('Announcement message').setRequired(true)
     ),
   new SlashCommandBuilder()
-    .setName('dm')
-    .setDescription('Send a direct message to a user (admin only)')
-    .addUserOption((option) => option.setName('user').setDescription('User to DM').setRequired(true))
-    .addStringOption((option) => option.setName('message').setDescription('Message content').setRequired(true)),
-  new SlashCommandBuilder()
     .setName('embed')
     .setDescription('Send a custom embed (admin only)')
-    .addStringOption((option) => option.setName('title').setDescription('Embed title').setRequired(true))
-    .addStringOption((option) => option.setName('description').setDescription('Embed description').setRequired(true)),
-  new SlashCommandBuilder()
-    .setName('makeroles')
-    .setDescription('Create Discord roles based on Roblox group ranks'),
+    .addStringOption((option) =>
+      option.setName('title').setDescription('Embed title').setRequired(true)
+    )
+    .addStringOption((option) =>
+      option.setName('description').setDescription('Embed description').setRequired(true)
+    ),
 ].map((cmd) => cmd.toJSON());
 
 async function deployCommands() {
@@ -91,7 +85,7 @@ async function deployCommands() {
 }
 
 client.once('ready', () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
+  console.log(✅ Logged in as ${client.user.tag});
   deployCommands();
 });
 
@@ -119,36 +113,36 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle('Windsor Castle RP — Server Start Up')
       .setColor('#0047AB')
       .setDescription(
-        `Welcome to Windsor Castle RP!\n\n` +
-          `The server is now **ONLINE**.\n\n` +
-          `🔹 Please follow all community rules\n` +
-          `🔹 Report any bugs or issues\n` +
-          `🔹 Enjoy immersive and respectful RP!`
+        Welcome to Windsor Castle RP!\n\n +
+          The server is now **ONLINE**.\n\n +
+          🔹 Please follow all community rules\n +
+          🔹 Report any bugs or issues\n +
+          🔹 Enjoy immersive and respectful RP!
       )
       .setThumbnail(imageURL)
       .setFooter({ text: 'Windsor Castle RP | Server Status' })
       .setTimestamp();
 
-    await interaction.reply({ content: `✅ SSU posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
-    await ssuSsdChannel.send({ content: `<@&1378808547881521354>`, embeds: [embed] });
+    await interaction.reply({ content: ✅ SSU posted in <#${SSU_SSD_CHANNEL_ID}>, ephemeral: true });
+    await ssuSsdChannel.send({ content: <@&1378808547881521354>, embeds: [embed] });
 
   } else if (commandName === 'ssd') {
     const embed = new EmbedBuilder()
       .setTitle('Windsor Castle RP — Server Shut Down')
       .setColor('#0047AB')
       .setDescription(
-        `The server is now **OFFLINE**.\n\n` +
-          `Thanks for participating today!\n\n` +
-          `🕊️ Make sure to log off properly\n` +
-          `📝 Feel free to leave feedback or suggestions\n` +
-          `👑 See you next session!`
+        The server is now **OFFLINE**.\n\n +
+          Thanks for participating today!\n\n +
+          🕊️ Make sure to log off properly\n +
+          📝 Feel free to leave feedback or suggestions\n +
+          👑 See you next session!
       )
       .setThumbnail(imageURL)
       .setFooter({ text: 'Windsor Castle RP | Server Status' })
       .setTimestamp();
 
-    await interaction.reply({ content: `✅ SSD posted in <#${SSU_SSD_CHANNEL_ID}>`, ephemeral: true });
-    await ssuSsdChannel.send({ content: `<@&1378808547881521354>`, embeds: [embed] });
+    await interaction.reply({ content: ✅ SSD posted in <#${SSU_SSD_CHANNEL_ID}>, ephemeral: true });
+    await ssuSsdChannel.send({ content: <@&1378808547881521354>, embeds: [embed] });
 
   } else if (commandName === 'discordrules') {
     const embed = new EmbedBuilder()
@@ -173,7 +167,7 @@ client.on('interactionCreate', async (interaction) => {
       .setFooter({ text: 'Violating rules may result in punishment. Stay respectful!' })
       .setTimestamp();
 
-    await interaction.reply({ content: `📘 Rules posted in <#${RULES_CHANNEL_ID}>`, ephemeral: true });
+    await interaction.reply({ content: 📘 Rules posted in <#${RULES_CHANNEL_ID}>, ephemeral: true });
     await rulesChannel.send({ embeds: [embed] });
 
   } else if (commandName === 'announce') {
@@ -190,7 +184,7 @@ client.on('interactionCreate', async (interaction) => {
       .setFooter({ text: 'Windsor Castle RP' })
       .setTimestamp();
 
-    await interaction.reply({ content: `📣 Announcement sent in this channel.`, ephemeral: true });
+    await interaction.reply({ content: 📣 Announcement sent in this channel., ephemeral: true });
     await interaction.channel.send({ embeds: [embed] });
 
   } else if (commandName === 'embed') {
@@ -209,80 +203,16 @@ client.on('interactionCreate', async (interaction) => {
       .setFooter({ text: 'Custom Embed' })
       .setTimestamp();
 
-    await interaction.reply({ content: `✅ Embed sent.`, ephemeral: true });
+    await interaction.reply({ content: ✅ Embed sent., ephemeral: true });
     await interaction.channel.send({ embeds: [embed] });
-
-  } else if (commandName === 'makeroles') {
-    if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-      return interaction.reply({ content: '❌ You lack permission to use this command.', ephemeral: true });
-    }
-
-    await interaction.reply({ content: '⏳ Fetching ranks and creating roles...' });
-
-    try {
-      // Dynamically import noblox.js (make sure noblox.js is installed)
-      const noblox = await import('noblox.js');
-
-      if (!ROBLX_COOKIE) {
-        return interaction.editReply('❌ ROBLX_COOKIE environment variable is not set.');
-      }
-      if (!ROBLX_GROUP_ID) {
-        return interaction.editReply('❌ ROBLX_GROUP_ID environment variable is not set.');
-      }
-
-      await noblox.setCookie(ROBLX_COOKIE);
-
-      const groupId = parseInt(ROBLX_GROUP_ID);
-      if (isNaN(groupId)) {
-        return interaction.editReply('❌ ROBLX_GROUP_ID is not a valid number.');
-      }
-
-      const ranks = await noblox.getRoles(groupId);
-
-      let createdRoles = 0;
-      for (const rank of ranks) {
-        // Check if role exists by name
-        let role = interaction.guild.roles.cache.find((r) => r.name === rank.name);
-        if (!role) {
-          // Create role with color blue
-          role = await interaction.guild.roles.create({
-            name: rank.name,
-            color: 'BLUE',
-            reason: 'Role created from Roblox group ranks',
-          });
-          createdRoles++;
-        }
-      }
-
-      await interaction.editReply(`✅ Created ${createdRoles} new roles from Roblox group ranks.`);
-
-    } catch (error) {
-      console.error('Error creating roles:', error);
-      await interaction.editReply(`❌ Failed to create roles: ${error.message}`);
-    }
-
-  } else if (commandName === 'dm') {
-    if (!member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-      return interaction.reply({ content: '❌ You lack permission to use this command.', ephemeral: true });
-    }
-
-    const user = interaction.options.getUser('user');
-    const message = interaction.options.getString('message');
-
-    try {
-      await user.send(message);
-      await interaction.reply({ content: `✅ DM sent to ${user.tag}`, ephemeral: true });
-    } catch (error) {
-      await interaction.reply({ content: `❌ Failed to send DM to ${user.tag}`, ephemeral: true });
-    }
   }
 });
 
 client.login(DISCORD_TOKEN);
 
-// Optional: Simple Express server to keep the bot alive on some hosts
+// Express keep-alive for Render
 const app = express();
-app.get('/', (req, res) => {
-  res.send('Bot is running');
+app.get('/', (_, res) => res.sendStatus(200));
+app.listen(PORT, () => {
+  console.log(🌐 HTTP server running on port ${PORT});
 });
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
